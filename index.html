@@ -149,7 +149,7 @@
 
   /* SIGNAL CARD */
   .signal-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:1.4rem;margin-bottom:1.1rem;position:relative;overflow:hidden;transition:all 0.2s;cursor:pointer}
-  .signal-card:hover{border-color:rgba(255,107,0,0.4);transform:translateY(-2px)}
+  .signal-card:hover{border-color:rgba(255,107,0,0.4);transform:translateY(-2px);box-shadow:0 8px 30px rgba(255,107,0,0.08)}
   .signal-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
   .signal-card.short::before{background:var(--rose)}.signal-card.long::before{background:var(--mint)}
   .sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.7rem}
@@ -160,14 +160,18 @@
   .sc-source{display:inline-flex;align-items:center;gap:5px;font-size:0.64rem;font-family:'JetBrains Mono',monospace;padding:2px 8px;border-radius:4px;margin-bottom:0.6rem}
   .sc-source.engine{background:rgba(0,212,255,0.1);color:var(--cyan)}
   .sc-source.analyst{background:rgba(199,125,255,0.12);color:var(--purple)}
-  .sc-grade{display:flex;align-items:center;gap:8px;margin-bottom:0.85rem}
+  .sc-grade{display:flex;align-items:center;gap:10px;margin-bottom:0.85rem}
+  .sc-rr-inline{font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--muted)}
+  .sc-rr-inline b{color:var(--mint);font-weight:700}
   .grade-badge{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.74rem;padding:3px 10px;border-radius:4px;background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(255,107,0,0.1));color:var(--gold);border:1px solid rgba(255,215,0,0.25)}
   .conf-bar{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
   .conf-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--mint));border-radius:3px}
   .conf-pct{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--mint);font-weight:600}
-  .sc-levels{display:grid;grid-template-columns:repeat(5,1fr);gap:0.7rem;margin-bottom:0.85rem;position:relative}
-  .sc-lvl-label{font-size:0.62rem;color:var(--muted);text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:2px}
-  .sc-lvl-val{font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:500}
+  .sc-levels{display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:0.85rem;position:relative}
+  .sc-levels>div{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.6rem;transition:border-color 0.2s}
+  .sc-levels>div:hover{border-color:rgba(255,107,0,0.3)}
+  .sc-lvl-label{font-size:0.58rem;color:var(--muted);text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:3px;letter-spacing:0.5px}
+  .sc-lvl-val{font-family:'JetBrains Mono',monospace;font-size:0.84rem;font-weight:600}
   .sc-lvl-val.entry{color:var(--orange)}.sc-lvl-val.sl{color:var(--rose)}.sc-lvl-val.be{color:var(--gold)}.sc-lvl-val.tp{color:var(--mint)}
   /* locked levels overlay */
   .levels-locked{position:relative}
@@ -180,12 +184,12 @@
   .nc-timer{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.88rem;color:var(--gold)}
   .sc-foot{display:flex;justify-content:space-between;align-items:center;padding-top:0.75rem;border-top:1px solid var(--border)}
   .sc-engine{font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--muted)}
-  .sc-status{font-size:0.68rem;font-family:'JetBrains Mono',monospace;padding:2px 8px;border-radius:4px}
-  .sc-status.live{background:rgba(0,255,170,0.1);color:var(--mint)}
-  .sc-status.tp1{background:rgba(255,215,0,0.1);color:var(--gold)}
-  .sc-status.tp2{background:rgba(0,255,170,0.1);color:var(--mint)}
-  .sc-status.win{background:rgba(34,197,94,0.12);color:var(--green)}
-  .sc-status.loss{background:rgba(255,61,107,0.1);color:var(--rose)}
+  .sc-status{font-size:0.72rem;font-weight:700;font-family:'JetBrains Mono',monospace;padding:4px 11px;border-radius:6px;letter-spacing:0.5px}
+  .sc-status.live{background:rgba(0,255,170,0.12);color:var(--mint);border:1px solid rgba(0,255,170,0.3)}
+  .sc-status.tp1{background:rgba(255,215,0,0.12);color:var(--gold);border:1px solid rgba(255,215,0,0.3)}
+  .sc-status.tp2{background:rgba(0,255,170,0.12);color:var(--mint);border:1px solid rgba(0,255,170,0.3)}
+  .sc-status.win{background:rgba(0,255,170,0.14);color:var(--mint);border:1px solid rgba(0,255,170,0.35)}
+  .sc-status.loss{background:rgba(255,61,107,0.12);color:var(--rose);border:1px solid rgba(255,61,107,0.3)}
   .sc-rr{font-size:0.78rem;font-family:'JetBrains Mono',monospace;color:var(--muted)}
   .sc-rr span{color:var(--mint)}
   /* small social strip under signal */
@@ -1104,10 +1108,10 @@ function signalCardHTML(s,past){
   return `<div class="signal-card ${s.dir}" onclick="openDetail(${s.id},${past?1:0})">
     ${src}
     <div class="sc-top"><div><div class="sc-pair">${s.pair}</div><div class="sc-time">${s.time} · ${s.tf}</div></div><span class="sc-dir ${s.dir}">${s.dir==='short'?'⬇ SHORT':'⬆ LONG'}</span></div>
-    <div class="sc-grade"><span class="grade-badge">${s.grade} GRADE</span></div>
+    <div class="sc-grade"><span class="grade-badge">${s.grade} GRADE</span><span class="sc-rr-inline">RR <b>${s.rr}</b></span><span style="margin-left:auto">${st}</span></div>
     ${levelsHTML(s)}
     ${news}
-    <div class="sc-foot">${analystTag}<span class="sc-rr">RR <span>${s.rr}</span></span> ${st}</div>
+    <div class="sc-foot">${analystTag}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:0.6rem">${voteBarHTML(s)}<span style="font-size:0.62rem;color:var(--muted)">Community sentiment</span></div>
     ${SOCIAL}
   </div>`
