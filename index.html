@@ -798,7 +798,7 @@
 <div class="view" id="view-about"><div class="legal">
   <h1>About Tradedge Pulse</h1><div class="updated">A sub-product of Tradedge Markets</div>
   <p>Tradedge Pulse is a professional trading signal terminal built for serious traders who want institutional-grade analysis without the noise. We focus on XAUUSD (gold), forex majors, indices, and crypto.</p>
-  <h2>Our Approach</h2><p>Every signal is graded and confidence-scored by our proprietary Pulse Engine, combined with hand-picked analyst calls. We believe in radical transparency — every signal is tracked to its outcome and our full results history is public, including losses.</p>
+  <h2>Our Approach</h2><p>Every signal is graded by our proprietary Pulse Engine, combined with hand-picked analyst calls. We believe in radical transparency — every signal is tracked to its outcome and our full results history is public, including losses.</p>
   <h2>What Makes Us Different</h2><ul><li>Verified, public track record — no cherry-picking</li><li>Full risk management on every signal (SL, BE, TP1, TP2)</li><li>Honest broker reviews with live data and trust scores</li><li>A real trading community, not just a signal dump</li></ul>
   <p>Tradedge Pulse is a sub-product of Tradedge Markets. We provide education and analysis only — not financial advice. Please review our Risk Disclaimer before trading.</p>
 </div></div>
@@ -1066,7 +1066,7 @@ function signalCardHTML(s,past){
   return `<div class="signal-card ${s.dir}" onclick="openDetail(${s.id},${past?1:0})">
     ${src}
     <div class="sc-top"><div><div class="sc-pair">${s.pair}</div><div class="sc-time">${s.time} · ${s.tf}</div></div><span class="sc-dir ${s.dir}">${s.dir==='short'?'⬇ SHORT':'⬆ LONG'}</span></div>
-    <div class="sc-grade"><span class="grade-badge">${s.grade} GRADE</span><div class="conf-bar"><div class="conf-fill" style="width:${s.conf}%"></div></div><span class="conf-pct">${s.conf}%</span></div>
+    <div class="sc-grade"><span class="grade-badge">${s.grade} GRADE</span></div>
     ${levelsHTML(s)}
     ${news}
     <div class="sc-foot">${analystTag}<span class="sc-rr">RR <span>${s.rr}</span></span> ${st}</div>
@@ -1174,7 +1174,7 @@ function openDetail(id,past){
       <span class="sc-source ${s.source}">${s.source==='analyst'?'✍️ Analyst':'🤖 Pulse Engine'}</span>${st}
     </div>
     <h2 style="display:flex;align-items:center;gap:10px">${s.pair} <span class="sc-dir ${s.dir}" style="font-size:0.8rem">${s.dir==='short'?'⬇ SHORT':'⬆ LONG'}</span></h2>
-    <p class="modal-sub" style="margin-bottom:0.75rem">${s.time} · ${s.tf} · <span class="grade-badge">${s.grade}</span> · Confidence ${s.conf}%</p>
+    <p class="modal-sub" style="margin-bottom:0.75rem">${s.time} · ${s.tf} · <span class="grade-badge">${s.grade}</span></p>
     ${s.news&&!past?`<div class="news-cd"><div class="nc-left">⚠ ${s.news} in</div><div class="nc-timer" data-news="d${s.id}">${fmtTime(s.newsSec)}</div></div>`:''}
     ${lvls}
     ${s.note?`<div style="font-size:0.88rem;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1rem;line-height:1.7"><strong style="color:var(--white)">Analyst note:</strong> ${s.note}</div>`:''}
