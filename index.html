@@ -359,6 +359,25 @@
   /* SIGNAL DETAIL MODAL */
   .detail-levels{display:grid;grid-template-columns:repeat(2,1fr);gap:0.85rem;margin:1.25rem 0}
   .dl-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:0.85rem 1rem}
+  #comments-section{margin-top:1.25rem;border-top:1px solid var(--border);padding-top:1.1rem}
+  .cm-head{font-size:0.8rem;font-weight:700;letter-spacing:1px;color:var(--gold);text-transform:uppercase;margin-bottom:0.9rem}
+  .cm-list{display:flex;flex-direction:column;gap:0.8rem;margin-bottom:0.9rem;max-height:260px;overflow-y:auto}
+  .cm-item{display:flex;gap:10px}
+  .cm-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--gold));color:#000;font-weight:700;font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .cm-body{flex:1;min-width:0}
+  .cm-meta{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+  .cm-name{font-size:0.82rem;font-weight:600;color:var(--white)}
+  .cm-time{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--muted)}
+  .cm-text{font-size:0.86rem;color:var(--text);line-height:1.5;word-wrap:break-word}
+  .cm-loading,.cm-empty{font-size:0.82rem;color:var(--muted);padding:0.5rem 0}
+  .cm-compose-row{display:flex;gap:8px}
+  .cm-compose-row input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.8rem;color:var(--white);font-size:0.86rem}
+  .cm-compose-row input:focus{outline:none;border-color:var(--orange)}
+  .cm-send{background:var(--orange);color:#000;font-weight:700;border:none;border-radius:8px;padding:0 1.1rem;cursor:pointer;font-size:0.84rem}
+  .cm-send:hover{background:var(--gold)}
+  .cm-send:disabled{opacity:0.5;cursor:default}
+  .cm-hint{font-size:0.68rem;color:var(--muted);margin-top:0.5rem}
+  .cm-login-note{font-size:0.84rem;color:var(--muted)}
   .tl-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.2rem;margin-top:1rem}
   .tl-head{font-size:0.8rem;font-weight:700;letter-spacing:1px;color:var(--gold);text-transform:uppercase;margin-bottom:1rem}
   .tl-row{position:relative;display:flex;gap:14px;padding-bottom:1rem}
@@ -1191,6 +1210,52 @@ function switchSigTab(tab,btn){
 }
 
 // SIGNAL DETAIL
+// ── COMMENTS ──
+function escapeHTML(t){return (t||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function loadComments(sigId){
+  const list=document.getElementById('cm-list')
+  const compose=document.getElementById('cm-compose')
+  if(!list)return
+  try{
+    const {data,error}=await sb.from('public_comments').select('*').eq('signal_id',sigId).order('created_at',{ascending:true})
+    if(error){list.innerHTML='<div class="cm-loading">Comments unavailable.</div>'}
+    else if(!data||!data.length){list.innerHTML='<div class="cm-empty">No comments yet. Be the first to share your take.</div>'}
+    else{
+      list.innerHTML=data.map(c=>{
+        const t=new Date(c.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+new Date(c.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})
+        const initial=(c.user_name||'?').trim().charAt(0).toUpperCase()
+        return `<div class="cm-item"><div class="cm-avatar">${escapeHTML(initial)}</div><div class="cm-body"><div class="cm-meta"><span class="cm-name">${escapeHTML(c.user_name)}</span><span class="cm-time">${t}</span></div><div class="cm-text">${escapeHTML(c.body)}</div></div></div>`
+      }).join('')
+    }
+  }catch(e){list.innerHTML='<div class="cm-loading">Comments unavailable.</div>'}
+  // compose box (login required)
+  if(loggedIn){
+    compose.innerHTML=`<div class="cm-compose-row"><input id="cm-input" maxlength="500" placeholder="Add a comment…" onkeydown="if(event.key==='Enter')postComment(${sigId})"><button class="cm-send" onclick="postComment(${sigId})">Post</button></div><div class="cm-hint">Be respectful. No spam, promotions, or financial advice. Comments are moderated.</div>`
+  }else{
+    compose.innerHTML=`<div class="cm-login-note">🔒 <a onclick="closeModal('detail');openModal('login')" style="color:var(--orange);cursor:pointer">Log in</a> to join the discussion.</div>`
+  }
+}
+async function postComment(sigId){
+  const input=document.getElementById('cm-input')
+  if(!input)return
+  const body=input.value.trim()
+  if(!body){return}
+  if(body.length>500){showToast('Comment too long (max 500)');return}
+  // basic client-side spam guard: block obvious links
+  if(/https?:\/\/|www\.|t\.me\/|wa\.me\//i.test(body)){showToast('Links are not allowed in comments');return}
+  const btn=document.querySelector('.cm-send')
+  if(btn){btn.disabled=true;btn.textContent='…'}
+  try{
+    const {data:{session}}=await sb.auth.getSession()
+    if(!session){showToast('Please log in');return}
+    const name=userName||session.user.email.split('@')[0]
+    const {error}=await sb.from('signal_comments').insert({signal_id:sigId,user_id:session.user.id,user_name:name,body})
+    if(error){showToast('Could not post comment');}
+    else{input.value='';await loadComments(sigId)}
+  }catch(e){showToast('Error posting comment')}
+  if(btn){btn.disabled=false;btn.textContent='Post'}
+}
+
 function openDetail(id,past){
   const s=(past?PAST:SIGNALS).find(x=>x.id===id);if(!s)return
   const lvls=isUnlocked()?`
@@ -1222,9 +1287,11 @@ function openDetail(id,past){
     ${buildTimeline(s)}
     ${s.note?`<div style="font-size:0.88rem;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1rem;line-height:1.7"><strong style="color:var(--white)">Analyst note:</strong> ${s.note}</div>`:''}
     ${analyst}
+    <div id="comments-section" data-sig="${s.id}"><div class="cm-head">💬 Discussion</div><div id="cm-list" class="cm-list"><div class="cm-loading">Loading comments…</div></div><div id="cm-compose"></div></div>
     <div class="sc-social" style="border:none;margin-top:1rem"><div class="sc-social-txt">📡 Stay updated — alerts & market news</div><div class="sc-social-links"><a class="sc-soc" href="https://instagram.com/tradedgepulse" target="_blank" rel="noopener">${IG_ICON}</a><a class="sc-soc" href="https://t.me/tradedgepulse" target="_blank" rel="noopener">${TG_ICON}</a></div></div>
   `
   openModal('detail')
+  loadComments(s.id)
 }
 
 // PROOF + ECON + BROKERS
