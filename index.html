@@ -355,6 +355,15 @@
   /* SIGNAL DETAIL MODAL */
   .detail-levels{display:grid;grid-template-columns:repeat(2,1fr);gap:0.85rem;margin:1.25rem 0}
   .dl-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:0.85rem 1rem}
+  .tl-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.2rem;margin-top:1rem}
+  .tl-head{font-size:0.8rem;font-weight:700;letter-spacing:1px;color:var(--gold);text-transform:uppercase;margin-bottom:1rem}
+  .tl-row{position:relative;display:flex;gap:14px;padding-bottom:1rem}
+  .tl-row:last-child{padding-bottom:0}
+  .tl-dot{width:14px;height:14px;border-radius:50%;border:2px solid;flex-shrink:0;margin-top:2px;z-index:2}
+  .tl-line{position:absolute;left:6px;top:16px;bottom:-2px;width:2px;background:var(--border);z-index:1}
+  .tl-body{flex:1}
+  .tl-title{font-size:0.9rem;font-weight:600;line-height:1.4}
+  .tl-sub{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--muted);margin-top:2px}
   .dl-label{font-size:0.66rem;color:var(--muted);text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:3px}
   .dl-val{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:600}
   .detail-analyst{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,rgba(199,125,255,0.06),var(--bg3));border:1px solid var(--border2);border-radius:12px;padding:1rem;margin-top:1.25rem}
@@ -1040,6 +1049,25 @@ async function loadBrokersData(){
 
 // ── HELPERS ──
 function fmtTime(sec){if(sec==null)return'';const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`}
+// Build the trade progress timeline for the signal modal
+function buildTimeline(s){
+  const fmt=(t)=>{if(!t)return '';const d=new Date(t);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+  const steps=[]
+  steps.push({c:'var(--orange)',t:'Entry taken',sub:fmt(s.created),done:true})
+  if(s.tp1_at) steps.push({c:'var(--mint)',t:'TP1 hit — closed 30%, moved to breakeven',sub:fmt(s.tp1_at),done:true})
+  if(s.tp2_at) steps.push({c:'var(--mint)',t:'TP2 hit — closed another 50%',sub:fmt(s.tp2_at),done:true})
+  if(s.closed_at){
+    if(s.close_kind==='tp3') steps.push({c:'var(--cyan)',t:'TP3 hit — final 20% closed. Full target! 🏆',sub:fmt(s.closed_at),done:true})
+    else if(s.close_kind==='be-tp1') steps.push({c:'var(--gold)',t:'Closed at breakeven after TP1 — 30% banked, no loss 🛡️',sub:fmt(s.closed_at),done:true})
+    else if(s.close_kind==='be-tp2') steps.push({c:'var(--gold)',t:'Closed at breakeven after TP2 — 80% banked 🛡️',sub:fmt(s.closed_at),done:true})
+    else if(s.close_kind==='sl') steps.push({c:'var(--rose)',t:'Stopped out ❌',sub:fmt(s.closed_at),done:true})
+  } else if(s.status==='live'||s.status==='tp1'||s.status==='tp2'){
+    steps.push({c:'var(--muted)',t:'Trade in progress…',sub:'Live',done:false})
+  }
+  if(steps.length<=1 && s.status==='live') return ''
+  const rows=steps.map((st,i)=>`<div class="tl-row"><div class="tl-dot" style="background:${st.done?st.c:'transparent'};border-color:${st.c}"></div>${i<steps.length-1?'<div class="tl-line"></div>':''}<div class="tl-body"><div class="tl-title" style="color:${st.c}">${st.t}</div>${st.sub?`<div class="tl-sub">${st.sub}</div>`:''}</div></div>`).join('')
+  return `<div class="tl-wrap"><div class="tl-head">📊 Trade Progress</div>${rows}</div>`
+}
 
 const SOCIAL=`<div class="sc-social"><div class="sc-social-txt">📡 Join our channels for alerts & market updates</div><div class="sc-social-links"><a class="sc-soc" href="https://instagram.com/tradedgepulse" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Instagram">${IG_ICON}</a><a class="sc-soc" href="https://t.me/tradedgepulse" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Telegram">${TG_ICON}</a></div></div>`
 
@@ -1187,6 +1215,7 @@ function openDetail(id,past){
     <p class="modal-sub" style="margin-bottom:0.75rem">${s.time} · ${s.tf} · <span class="grade-badge">${s.grade}</span></p>
     ${s.news&&!past?`<div class="news-cd"><div class="nc-left">⚠ ${s.news} in</div><div class="nc-timer" data-news="d${s.id}">${fmtTime(s.newsSec)}</div></div>`:''}
     ${lvls}
+    ${buildTimeline(s)}
     ${s.note?`<div style="font-size:0.88rem;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1rem;line-height:1.7"><strong style="color:var(--white)">Analyst note:</strong> ${s.note}</div>`:''}
     ${analyst}
     <div class="sc-social" style="border:none;margin-top:1rem"><div class="sc-social-txt">📡 Stay updated — alerts & market news</div><div class="sc-social-links"><a class="sc-soc" href="https://instagram.com/tradedgepulse" target="_blank" rel="noopener">${IG_ICON}</a><a class="sc-soc" href="https://t.me/tradedgepulse" target="_blank" rel="noopener">${TG_ICON}</a></div></div>
@@ -1371,6 +1400,7 @@ async function loadSignals(){
         tp3:r.tp3!=null?String(r.tp3):null,
         tf:r.timeframe||'',grade:r.grade||'',conf:r.confidence||0,
         rr:r.rr||'',status:r.status||'live',note:r.note||'',analyst_id:r.analyst_id||null,
+        tp1_at:r.tp1_at||null,tp2_at:r.tp2_at||null,tp3_at:r.tp3_at||null,closed_at:r.closed_at||null,close_kind:r.close_kind||null,
         created:r.created_at,
         time:new Date(r.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+new Date(r.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
         news:r.news||null,newsSec
