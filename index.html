@@ -883,6 +883,16 @@
 <script>
 // ── STATE ──
 let loggedIn=false, subscribed=false, userName=''
+let ACCESS_MODE='free' // 'free' = everyone unlocked; 'subscription' = gated
+// helper: is content unlocked for this user?
+function isUnlocked(){ return ACCESS_MODE==='free' || subscribed }
+async function loadAccessMode(){
+  try{
+    const r=await fetch(window.BACKEND_URL+'/api/public-data?what=settings')
+    const d=await r.json()
+    if(d&&d.settings&&d.settings.access_mode) ACCESS_MODE=d.settings.access_mode
+  }catch(e){ ACCESS_MODE='free' } // fail open to free
+}
 // Telegram community group link — update this to your group invite link
 const COMMUNITY_URL='https://t.me/tradedgepulsechat'
 
@@ -1034,7 +1044,7 @@ function fmtTime(sec){if(sec==null)return'';const h=Math.floor(sec/3600),m=Math.
 const SOCIAL=`<div class="sc-social"><div class="sc-social-txt">📡 Join our channels for alerts & market updates</div><div class="sc-social-links"><a class="sc-soc" href="https://instagram.com/tradedgepulse" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Instagram">${IG_ICON}</a><a class="sc-soc" href="https://t.me/tradedgepulse" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Telegram">${TG_ICON}</a></div></div>`
 
 function levelsHTML(s){
-  if(subscribed){
+  if(isUnlocked()){
     return `<div class="sc-levels">
       <div><div class="sc-lvl-label">Entry</div><div class="sc-lvl-val entry">${s.entry}</div></div>
       <div><div class="sc-lvl-label">SL</div><div class="sc-lvl-val sl">${s.sl}</div></div>
@@ -1104,7 +1114,7 @@ function renderAnalysis(){
   if(!ANALYSIS.length){document.getElementById('analysis-feed').innerHTML=`<div class="card center" style="padding:2.5rem;color:var(--muted)">Daily market analysis will be published here. Sign up free to get notified.</div>`;return}
   document.getElementById('analysis-feed').innerHTML=ANALYSIS.map(a=>{
     const biasLabel=a.bias==='bull'?'🔺 '+a.pair+' — Bullish':'🔻 '+a.pair+' — Bearish'
-    const unlocked=subscribed
+    const unlocked=isUnlocked()
     const body=unlocked?`
       <p style="color:var(--text);margin-top:1rem"><strong style="color:var(--white)">Trade Plan:</strong> ${a.plan}</p>
       <p style="color:var(--text)"><strong style="color:var(--white)">Key Levels:</strong> ${a.levels}</p>
@@ -1127,7 +1137,7 @@ function renderMarketOverview(){
   if(!MARKET_OVERVIEW.length){document.getElementById('market-overview').innerHTML=`<div class="card center" style="padding:2.5rem;color:var(--muted)">Daily market bias & key levels will appear here.</div>`;return}
   document.getElementById('market-overview').innerHTML=MARKET_OVERVIEW.map(m=>{
     const biasLabel=m.bias==='bull'?'🔺 Bullish':m.bias==='bear'?'🔻 Bearish':'➖ Neutral'
-    const locked=!subscribed
+    const locked=!isUnlocked()
     return `<div class="mo-card">
       <div class="mo-head"><span class="mo-pair">${m.pair}</span><span class="mo-bias ${m.bias}">${biasLabel}</span></div>
       <div style="font-size:0.95rem;color:var(--white);font-weight:500;margin-bottom:0.5rem">${m.title}</div>
@@ -1151,7 +1161,7 @@ function switchSigTab(tab,btn){
 // SIGNAL DETAIL
 function openDetail(id,past){
   const s=(past?PAST:SIGNALS).find(x=>x.id===id);if(!s)return
-  const lvls=subscribed?`
+  const lvls=isUnlocked()?`
     <div class="detail-levels">
       <div class="dl-box"><div class="dl-label">Entry</div><div class="dl-val" style="color:var(--orange)">${s.entry}</div></div>
       <div class="dl-box"><div class="dl-label">Stop Loss</div><div class="dl-val" style="color:var(--rose)">${s.sl}</div></div>
@@ -1213,9 +1223,9 @@ function renderProof(){
   const proofBody=document.getElementById('proof-tbody')
   // hide the "subscribe to see prices" note for subscribers; adjust wording if logged in
   const lockNote=document.getElementById('results-lock-note')
-  if(lockNote)lockNote.style.display=subscribed?'none':''
+  if(lockNote)lockNote.style.display=isUnlocked()?'none':''
   const lockText=document.getElementById('results-lock-text')
-  if(lockText&&!subscribed){
+  if(lockText&&!isUnlocked()){
     lockText.innerHTML=loggedIn
       ? `Results are public. <a style="color:var(--orange);cursor:pointer" onclick="go('pricing')">Upgrade your plan</a> to see entry/exit prices on each trade.`
       : `Results are public. <a style="color:var(--orange);cursor:pointer" onclick="openModal('signup')">Subscribe</a> to see entry/exit prices on each trade.`
@@ -1227,7 +1237,7 @@ function renderProof(){
   }
   if(proofBar)proofBar.innerHTML=closed.slice(0,40).map(s=>{const r=s.status==='win'?'w':s.status==='loss'?'l':'be';return `<div class="proof-cell ${r}">${r==='w'?'W':r==='l'?'L':'B'}</div>`}).join('')
   if(proofBody)proofBody.innerHTML=closed.map(s=>{
-    const cell=subscribed?'':'blur-cell'
+    const cell=isUnlocked()?'':'blur-cell'
     return `<tr><td class="mono" style="color:var(--muted)">${s.time||''}</td><td style="font-weight:600;color:var(--white)">${s.pair}</td><td>${s.source==='analyst'?'✍️':'🤖'}</td><td><span style="font-size:0.72rem;padding:2px 8px;border-radius:3px;background:${s.dir==='short'?'rgba(255,61,107,0.12)':'rgba(0,255,170,0.1)'};color:${s.dir==='short'?'var(--rose)':'var(--mint)'}">${(s.dir||'').toUpperCase()}</span></td><td class="mono ${cell}">${s.entry||''}</td><td class="mono ${cell}">${s.exit||'—'}</td><td><span class="pill ${s.status}">${s.status==='win'?'✓ Win':s.status==='loss'?'✗ Loss':'BE'}</span></td><td class="mono" style="color:${s.status==='win'?'var(--mint)':s.status==='loss'?'var(--rose)':'var(--gold)'};font-weight:600">${s.rr||''}</td></tr>`
   }).join('')
 }
@@ -1514,7 +1524,7 @@ function showSignalPopup(sig){
   document.getElementById('popup-pair').textContent=sig.pair
   document.getElementById('popup-grade').textContent=sig.grade||''
   document.getElementById('popup-grade').style.display=sig.grade?'inline-block':'none'
-  document.getElementById('popup-entry-line').innerHTML=isMarket?(sig.desc||'New market update'):(subscribed?`Entry: <b style="color:var(--orange)">${sig.entry}</b> · ${sig.tf||''}`:`🔒 Subscribe to view levels`)
+  document.getElementById('popup-entry-line').innerHTML=isMarket?(sig.desc||'New market update'):(isUnlocked()?`Entry: <b style="color:var(--orange)">${sig.entry}</b> · ${sig.tf||''}`:`🔒 Subscribe to view levels`)
   document.getElementById('signal-popup').classList.add('show')
   playBeep()
   clearTimeout(popupTimeout);popupTimeout=setTimeout(closePopup,7000)
@@ -1570,13 +1580,15 @@ renderSignals();renderHomeSignals();renderProof();renderBrokers();renderMarketOv
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id.replace('modal-',''))}))
 // restore session if already logged in
 checkSession()
-// load live signals from database (replaces demo data if any exist)
-loadSignals()
-loadStats()
-loadVotes()
-loadPricingData()
-loadBrokersData()
-loadAnalysisData()
+// load access mode FIRST (decides whether levels are gated), then render everything
+loadAccessMode().then(()=>{
+  loadSignals()
+  loadStats()
+  loadVotes()
+  loadPricingData()
+  loadBrokersData()
+  loadAnalysisData()
+})
 // refresh signals + stats every 30s so new ones appear
 setInterval(()=>{loadSignals();loadStats()}, 30000)
 
