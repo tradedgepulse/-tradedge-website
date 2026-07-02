@@ -676,7 +676,7 @@
     <div class="metric"><div class="metric-label">Wins / Losses</div><div class="metric-value" data-stat="wins-losses">0<span style="color:var(--muted);font-size:1rem"> / 0</span></div></div>
     <div class="metric"><div class="metric-label">Active Now</div><div class="metric-value purple" data-stat="active">0</div></div>
   </div>
-  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:2rem;font-family:'JetBrains Mono',monospace">Returns modelled on 1% risk per trade with 30/50/20 scale-out at TP1 (1R) / TP2 (2.5R) / TP3 (4R). Illustrative of strategy performance — individual results vary with position sizing.</p>
+  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:2rem;font-family:'JetBrains Mono',monospace">Returns modelled on 1% risk per trade with 10/60/30 scale-out at TP1 (1R) / TP2 (2.5R) / TP3 (4R). Illustrative of strategy performance — individual results vary with position sizing.</p>
 
   <!-- SWITCHABLE TABS -->
   <div class="sig-tabs">
@@ -1095,12 +1095,12 @@ function buildTimeline(s){
   const fmt=(t)=>{if(!t)return '';const d=new Date(t);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
   const steps=[]
   steps.push({c:'var(--orange)',t:'Entry taken',sub:fmt(s.created),done:true})
-  if(s.tp1_at) steps.push({c:'var(--mint)',t:'TP1 hit — closed 30%, moved to breakeven',sub:fmt(s.tp1_at),done:true})
-  if(s.tp2_at) steps.push({c:'var(--mint)',t:'TP2 hit — closed another 50%',sub:fmt(s.tp2_at),done:true})
+  if(s.tp1_at) steps.push({c:'var(--mint)',t:'TP1 hit — closed 10%, moved to breakeven',sub:fmt(s.tp1_at),done:true})
+  if(s.tp2_at) steps.push({c:'var(--mint)',t:'TP2 hit — closed 60% more',sub:fmt(s.tp2_at),done:true})
   if(s.closed_at){
-    if(s.close_kind==='tp3') steps.push({c:'var(--cyan)',t:'TP3 hit — final 20% closed. Full target! 🏆',sub:fmt(s.closed_at),done:true})
-    else if(s.close_kind==='be-tp1') steps.push({c:'var(--gold)',t:'Closed at breakeven after TP1 — 30% banked, no loss 🛡️',sub:fmt(s.closed_at),done:true})
-    else if(s.close_kind==='be-tp2') steps.push({c:'var(--gold)',t:'Closed at breakeven after TP2 — 80% banked 🛡️',sub:fmt(s.closed_at),done:true})
+    if(s.close_kind==='tp3') steps.push({c:'var(--cyan)',t:'TP3 hit — final 30% closed. Full target! 🏆',sub:fmt(s.closed_at),done:true})
+    else if(s.close_kind==='be-tp1') steps.push({c:'var(--gold)',t:'Closed at breakeven after TP1 — 10% banked, no loss 🛡️',sub:fmt(s.closed_at),done:true})
+    else if(s.close_kind==='be-tp2') steps.push({c:'var(--gold)',t:'Closed at breakeven after TP2 — 70% banked 🛡️',sub:fmt(s.closed_at),done:true})
     else if(s.close_kind==='sl') steps.push({c:'var(--rose)',t:'Stopped out ❌',sub:fmt(s.closed_at),done:true})
   } else if(s.status==='live'||s.status==='tp1'||s.status==='tp2'){
     steps.push({c:'var(--muted)',t:'Trade in progress…',sub:'Live',done:false})
@@ -1514,16 +1514,16 @@ async function loadSignals(){
 }
 // compute real live stats from all signals in the database
 // Gain per closed trade, as % return assuming 1% risk and 30/50/20 scale-out.
-// Full win (TP3) +2.35% · BE after TP2 +1.55% · BE after TP1 +0.30% · Loss -1.00%
+// Full win (TP3) +2.80% · BE after TP2 +1.60% · BE after TP1 +0.10% · Loss -1.00%
 function tradeGain(s){
   if(s.status==='loss') return -1.00
   if(s.status!=='win') return 0 // live/tp1/tp2 = not yet realized
   // win: use close_kind to know how far it ran
-  if(s.close_kind==='tp3') return 2.35
-  if(s.close_kind==='be-tp2') return 1.55
-  if(s.close_kind==='be-tp1') return 0.30
+  if(s.close_kind==='tp3') return 2.80
+  if(s.close_kind==='be-tp2') return 1.60
+  if(s.close_kind==='be-tp1') return 0.10
   // older wins without close_kind: assume full target reached (conservative legacy default)
-  return 2.35
+  return 2.80
 }
 async function loadStats(){
   try{
