@@ -1155,7 +1155,7 @@ function signalCardHTML(s,past){
   return `<div class="signal-card ${s.dir}" onclick="openDetail(${s.id},${past?1:0})">
     ${src}
     <div class="sc-top"><div><div class="sc-pair">${s.pair}</div><div class="sc-time">${s.time} · ${s.tf}</div></div><span class="sc-dir ${s.dir}">${s.dir==='short'?'⬇ SHORT':'⬆ LONG'}</span></div>
-    <div class="sc-grade"><span class="grade-badge">${s.grade} GRADE</span><span class="sc-rr-inline">RR <b>${s.rr}</b></span><span style="margin-left:auto">${st}</span></div>
+    <div class="sc-grade"><span class="grade-badge">${s.grade} GRADE</span><span class="sc-rr-inline">RR <b>${rrLabel(s)}</b></span><span style="margin-left:auto">${st}</span></div>
     ${levelsHTML(s)}
     ${news}
     <div class="sc-foot">${analystTag}</div>
@@ -1311,7 +1311,7 @@ function openDetail(id,past){
       <div class="dl-box"><div class="dl-label">Take Profit 1</div><div class="dl-val" style="color:var(--mint)">${s.tp1}</div></div>
       <div class="dl-box"><div class="dl-label">Take Profit 2</div><div class="dl-val" style="color:var(--mint)">${s.tp2}</div></div>
       <div class="dl-box"><div class="dl-label">Take Profit 3</div><div class="dl-val" style="color:var(--cyan)">${s.tp3||'—'}</div></div>
-      <div class="dl-box"><div class="dl-label">Risk : Reward</div><div class="dl-val">${s.rr}</div></div>
+      <div class="dl-box"><div class="dl-label">Risk : Reward</div><div class="dl-val">${rrLabel(s)}</div></div>
     </div>`:`
     <div class="alert-box" style="margin:1.25rem 0"><span>🔒</span><div>${loggedIn?'Subscribe to a plan to unlock entry, SL, BE and TP levels.':'Login and subscribe to unlock all levels.'} <a style="color:var(--orange);cursor:pointer" onclick="closeModal('detail');${loggedIn?"go('pricing',document.querySelector('[data-nav=pricing]'))":"openModal('signup')"}">${loggedIn?'View plans →':'Get started →'}</a></div></div>`
   const analyst=s.source==='analyst'?`
@@ -1417,7 +1417,7 @@ function renderProof(){
   const pageItems=closed.slice(proofPage*PROOF_PAGE_SIZE,proofPage*PROOF_PAGE_SIZE+PROOF_PAGE_SIZE)
   if(proofBody)proofBody.innerHTML=pageItems.map(s=>{
     const cell=isUnlocked()?'':'blur-cell'
-    return `<tr><td class="mono" style="color:var(--muted)">${s.time||''}</td><td style="font-weight:600;color:var(--white)">${s.pair}</td><td>${s.source==='analyst'?'✍️':'🤖'}</td><td><span style="font-size:0.72rem;padding:2px 8px;border-radius:3px;background:${s.dir==='short'?'rgba(255,61,107,0.12)':'rgba(0,255,170,0.1)'};color:${s.dir==='short'?'var(--rose)':'var(--mint)'}">${(s.dir||'').toUpperCase()}</span></td><td class="mono ${cell}">${s.entry||''}</td><td class="mono ${cell}">${s.exit||'—'}</td><td><span class="pill ${s.status}">${s.status==='win'?'✓ Win':s.status==='loss'?'✗ Loss':'BE'}</span></td><td class="mono" style="color:${s.status==='win'?'var(--mint)':s.status==='loss'?'var(--rose)':'var(--gold)'};font-weight:600">${s.rr||''}</td></tr>`
+    return `<tr><td class="mono" style="color:var(--muted)">${s.time||''}</td><td style="font-weight:600;color:var(--white)">${s.pair}</td><td>${s.source==='analyst'?'✍️':'🤖'}</td><td><span style="font-size:0.72rem;padding:2px 8px;border-radius:3px;background:${s.dir==='short'?'rgba(255,61,107,0.12)':'rgba(0,255,170,0.1)'};color:${s.dir==='short'?'var(--rose)':'var(--mint)'}">${(s.dir||'').toUpperCase()}</span></td><td class="mono ${cell}">${s.entry||''}</td><td class="mono ${cell}">${s.exit||'—'}</td><td><span class="pill ${s.status}">${s.status==='win'?'✓ Win':s.status==='loss'?'✗ Loss':'BE'}</span></td><td class="mono" style="color:${s.status==='win'?'var(--mint)':s.status==='loss'?'var(--rose)':'var(--gold)'};font-weight:600">${rrLabel(s)}</td></tr>`
   }).join('')
   const pager=document.getElementById('proof-pager')
   if(pager){
@@ -1570,6 +1570,20 @@ async function loadSignals(){
 // compute real live stats from all signals in the database
 // Gain per closed trade, as % return assuming 1% risk and 30/50/20 scale-out.
 // Full win (TP3) +2.80% · BE after TP2 +1.60% · BE after TP1 +0.10% · Loss -1.00%
+// Actual RR achieved, based on how far the trade really got — not the
+// static max-target RR stored at entry. A trade closed at TP2 shows 1:2.5,
+// not 1:4, since it never reached TP3.
+function rrLabel(s){
+  if(s.status==='win'){
+    if(s.close_kind==='tp3') return '1:4'
+    if(s.close_kind==='sl-after-tp2') return '1:2.5'
+    if(s.close_kind==='be-tp2') return '1:2.5' // legacy full-BE model trades
+    return s.rr||''  // older wins without close_kind: fall back to stored value
+  }
+  if(s.status==='be') return '1:1'   // reached TP1 then scratched at breakeven
+  if(s.status==='loss') return '-1R'  // full stop loss
+  return s.rr||''  // still open (live/tp1/tp2): show the max target as aspirational
+}
 function tradeGain(s){
   // No-stop-move model (SL never moves): 50/30/20 partial closes.
   // Full win (TP3) +2.05% | Win after TP2-then-SL +1.05% | Breakeven after TP1-then-SL: 0.00% | Full loss -1.00%
