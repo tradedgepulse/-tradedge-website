@@ -697,6 +697,7 @@
 
   <!-- ENGINE + ANALYST feed -->
   <div id="signals-feed"></div>
+  <div class="pg-wrap" id="signals-pager"></div>
 
   <!-- MARKET OVERVIEW (hidden unless tab active) -->
   <div id="market-overview" style="display:none"></div>
@@ -1163,10 +1164,26 @@ function signalCardHTML(s,past){
   </div>`
 }
 
+let sigPage=0
+const SIG_PAGE_SIZE=10
 function renderSignals(){
   const list=SIGNALS.filter(s=>s.source===sigTab)
-  document.getElementById('signals-feed').innerHTML=list.length?list.map(s=>signalCardHTML(s,false)).join(''):`<div class="card center" style="padding:2.5rem;color:var(--muted)">No ${sigTab} signals right now. New ones appear here live.</div>`
+  const totalPages=Math.max(1,Math.ceil(list.length/SIG_PAGE_SIZE))
+  if(sigPage>totalPages-1)sigPage=totalPages-1
+  if(sigPage<0)sigPage=0
+  const pageItems=list.slice(sigPage*SIG_PAGE_SIZE,sigPage*SIG_PAGE_SIZE+SIG_PAGE_SIZE)
+  document.getElementById('signals-feed').innerHTML=list.length?pageItems.map(s=>signalCardHTML(s,false)).join(''):`<div class="card center" style="padding:2.5rem;color:var(--muted)">No ${sigTab} signals right now. New ones appear here live.</div>`
+  const pager=document.getElementById('signals-pager')
+  if(pager){
+    if(totalPages<=1||!list.length){
+      pager.innerHTML=''
+    }else{
+      pager.innerHTML=`<button class="pg-btn" onclick="sigPrevPage()" ${sigPage===0?'disabled':''}>← Prev</button><span class="pg-info">Page ${sigPage+1} of ${totalPages} · ${list.length} signals</span><button class="pg-btn" onclick="sigNextPage()" ${sigPage>=totalPages-1?'disabled':''}>Next →</button>`
+    }
+  }
 }
+function sigNextPage(){sigPage++;renderSignals();document.getElementById('signals-feed')?.scrollIntoView({behavior:'smooth',block:'start'})}
+function sigPrevPage(){sigPage=Math.max(0,sigPage-1);renderSignals();document.getElementById('signals-feed')?.scrollIntoView({behavior:'smooth',block:'start'})}
 function renderHomeSignals(){
   const closed=SIGNALS.filter(s=>['win','loss','be'].includes(s.status)).slice(0,3)
   document.getElementById('home-signals').innerHTML=closed.length?closed.map(s=>signalCardHTML(s,true)).join(''):`<div class="card center" style="padding:2.5rem;color:var(--muted)">Our first results are coming soon. Sign up free to be notified the moment signals go live.</div>`
@@ -1229,6 +1246,7 @@ function renderMarketOverview(){
 
 function switchSigTab(tab,btn){
   sigTab=tab
+  sigPage=0
   document.querySelectorAll('.sig-tab').forEach(t=>t.classList.remove('active'))
   if(btn)btn.classList.add('active')
   const titles={engine:'Pulse Engine Signals',analyst:'Analyst Signals'}
