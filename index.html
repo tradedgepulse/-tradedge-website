@@ -1784,6 +1784,19 @@ function urlBase64ToUint8Array(base64String){
   for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i)
   return arr
 }
+// Reflect the REAL current push state on the button, so it doesn't reset
+// to "Enable Alerts" on every page refresh when the user already subscribed.
+async function checkPushState(){
+  const btn=document.getElementById('push-btn')
+  if(!btn)return
+  try{
+    if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))return
+    if(Notification.permission!=='granted'){btn.textContent='Enable Alerts';return}
+    const reg=await navigator.serviceWorker.ready
+    const sub=await reg.pushManager.getSubscription()
+    btn.textContent=sub?'✓ Alerts On':'Enable Alerts'
+  }catch(e){/* leave default label */}
+}
 async function enablePush(){
   if(!('serviceWorker' in navigator)||!('PushManager' in window)){showToast('Push not supported on this device/browser');return}
   if(!('Notification' in window)){showToast('Notifications not supported');return}
@@ -1824,6 +1837,8 @@ renderSignals();renderHomeSignals();renderProof();renderBrokers();renderMarketOv
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id.replace('modal-',''))}))
 // restore session if already logged in
 checkSession()
+// reflect real push notification state (don't let refresh reset the button)
+checkPushState()
 // load access mode FIRST (decides whether levels are gated), then render everything
 loadAccessMode().then(()=>{
   loadSignals()
