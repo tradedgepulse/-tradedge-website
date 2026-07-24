@@ -195,6 +195,7 @@
   .sc-status.tp2{background:rgba(0,255,170,0.12);color:var(--mint);border:1px solid rgba(0,255,170,0.3)}
   .sc-status.win{background:rgba(0,255,170,0.14);color:var(--mint);border:1px solid rgba(0,255,170,0.35)}
   .sc-status.loss{background:rgba(255,61,107,0.12);color:var(--rose);border:1px solid rgba(255,61,107,0.3)}
+  .sc-status.be{background:rgba(255,215,0,0.12);color:var(--gold);border:1px solid rgba(255,215,0,0.3)}
   .sc-rr{font-size:0.78rem;font-family:'JetBrains Mono',monospace;color:var(--muted)}
   .sc-rr span{color:var(--mint)}
   /* small social strip under signal */
@@ -225,6 +226,11 @@
   td{padding:12px;border-bottom:1px solid rgba(27,36,47,0.5);font-size:0.86rem}
   tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,107,0,0.03)}
   .table-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .pg-wrap{display:flex;align-items:center;justify-content:center;gap:1rem;margin-top:1.2rem;flex-wrap:wrap}
+  .pg-btn{background:var(--bg3);border:1px solid var(--border);color:var(--white);padding:8px 18px;border-radius:9px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit}
+  .pg-btn:hover:not(:disabled){border-color:var(--orange);color:var(--orange)}
+  .pg-btn:disabled{opacity:0.35;cursor:default}
+  .pg-info{font-size:0.82rem;color:var(--muted);font-family:'JetBrains Mono',monospace}
   .pill{font-size:0.66rem;font-family:'JetBrains Mono',monospace;padding:3px 9px;border-radius:4px}
   .pill.win{background:rgba(34,197,94,0.12);color:var(--green)}.pill.loss{background:rgba(255,61,107,0.1);color:var(--rose)}.pill.be{background:rgba(255,215,0,0.12);color:var(--gold)}
   .blur-cell{filter:blur(5px);user-select:none}
@@ -676,12 +682,12 @@
     <div class="metric"><div class="metric-label">Wins / Losses</div><div class="metric-value" data-stat="wins-losses">0<span style="color:var(--muted);font-size:1rem"> / 0</span></div></div>
     <div class="metric"><div class="metric-label">Active Now</div><div class="metric-value purple" data-stat="active">0</div></div>
   </div>
-  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:2rem;font-family:'JetBrains Mono',monospace">Returns modelled on 1% risk per trade with 10/60/30 scale-out at TP1 (1R) / TP2 (2.5R) / TP3 (4R). Illustrative of strategy performance — individual results vary with position sizing.</p>
+  <p style="font-size:0.72rem;color:var(--muted);margin-bottom:2rem;font-family:'JetBrains Mono',monospace">Returns modelled on 1% risk per trade with 50/30/20 scale-out at TP1 (1R) / TP2 (2.5R) / TP3 (4R). Stop loss is never moved — TP1 is sized to make the trade risk-free once hit. Illustrative of strategy performance — individual results vary with position sizing.</p>
 
   <!-- SWITCHABLE TABS -->
   <div class="sig-tabs">
-    <button class="sig-tab active" data-tab="engine" onclick="switchSigTab('engine',this)">🤖 Pulse Engine</button>
-    <button class="sig-tab" data-tab="analyst" onclick="switchSigTab('analyst',this)">✍️ Analyst</button>
+    <button class="sig-tab active" data-tab="engine" onclick="switchSigTab('engine',this)">🤖 Pulse Engine — Automated Signals</button>
+    <!-- Analyst tab hidden for now: website is Pulse Engine (TradingView automated) only -->
   </div>
 
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -753,6 +759,7 @@
   </div>
   <div class="alert-box" id="results-lock-note"><span>🔒</span><div id="results-lock-text">Results are public. <a style="color:var(--orange);cursor:pointer" onclick="openModal('signup')">Subscribe</a> to see entry/exit prices on each trade.</div></div>
   <div class="table-card"><table><thead><tr><th>Date</th><th>Pair</th><th>Src</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Result</th><th>RR</th></tr></thead><tbody id="proof-tbody"></tbody></table></div>
+  <div class="pg-wrap" id="proof-pager"></div>
 </div>
 
 <!-- ════ ANALYSIS ════ -->
@@ -1095,10 +1102,12 @@ function buildTimeline(s){
   const fmt=(t)=>{if(!t)return '';const d=new Date(t);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
   const steps=[]
   steps.push({c:'var(--orange)',t:'Entry taken',sub:fmt(s.created),done:true})
-  if(s.tp1_at) steps.push({c:'var(--mint)',t:'TP1 hit — closed 10%, moved to breakeven',sub:fmt(s.tp1_at),done:true})
-  if(s.tp2_at) steps.push({c:'var(--mint)',t:'TP2 hit — closed 60% more',sub:fmt(s.tp2_at),done:true})
+  if(s.tp1_at) steps.push({c:'var(--mint)',t:'TP1 hit — closed 50%. Trade now risk-free (SL unchanged) 🛡️',sub:fmt(s.tp1_at),done:true})
+  if(s.tp2_at) steps.push({c:'var(--mint)',t:'TP2 hit — closed 30% more (80% banked)',sub:fmt(s.tp2_at),done:true})
   if(s.closed_at){
-    if(s.close_kind==='tp3') steps.push({c:'var(--cyan)',t:'TP3 hit — final 30% closed. Full target! 🏆',sub:fmt(s.closed_at),done:true})
+    if(s.close_kind==='tp3') steps.push({c:'var(--cyan)',t:'TP3 hit — final 20% closed. Full target! 🏆',sub:fmt(s.closed_at),done:true})
+    else if(s.close_kind==='sl-after-tp2') steps.push({c:'var(--mint)',t:'Closed at original stop after TP2 — 80% banked, still a win 📈',sub:fmt(s.closed_at),done:true})
+    else if(s.close_kind==='sl-after-tp1') steps.push({c:'var(--gold)',t:'Closed at original stop after TP1 — exact breakeven, no loss 🛡️',sub:fmt(s.closed_at),done:true})
     else if(s.close_kind==='be-tp1') steps.push({c:'var(--gold)',t:'Closed at breakeven after TP1 — 10% banked, no loss 🛡️',sub:fmt(s.closed_at),done:true})
     else if(s.close_kind==='be-tp2') steps.push({c:'var(--gold)',t:'Closed at breakeven after TP2 — 70% banked 🛡️',sub:fmt(s.closed_at),done:true})
     else if(s.close_kind==='sl') steps.push({c:'var(--rose)',t:'Stopped out ❌',sub:fmt(s.closed_at),done:true})
@@ -1138,7 +1147,7 @@ function levelsHTML(s){
 }
 
 function signalCardHTML(s,past){
-  const st=s.status==='live'?'<span class="sc-status live">● Live</span>':s.status==='tp1'?'<span class="sc-status tp1">TP1 Hit</span>':s.status==='tp2'?'<span class="sc-status tp2">TP2 Hit</span>':s.status==='win'?'<span class="sc-status win">✓ Win</span>':s.status==='loss'?'<span class="sc-status loss">✗ Loss</span>':'<span class="sc-status">Closed</span>'
+  const st=s.status==='live'?'<span class="sc-status live">● Live</span>':s.status==='tp1'?'<span class="sc-status tp1">TP1 Hit</span>':s.status==='tp2'?'<span class="sc-status tp2">TP2 Hit</span>':s.status==='win'?'<span class="sc-status win">✓ Win</span>':s.status==='loss'?'<span class="sc-status loss">✗ Loss</span>':s.status==='be'?'<span class="sc-status be">→ Breakeven</span>':'<span class="sc-status">Closed</span>'
   const src=s.source==='analyst'?`<span class="sc-source analyst">✍️ Analyst</span>`:`<span class="sc-source engine">🤖 Pulse Engine</span>`
   const news=(s.news&&!past)?`<div class="news-cd"><div class="nc-left">⚠ ${s.news} in</div><div class="nc-timer" data-news="${s.id}">${fmtTime(s.newsSec)}</div></div>`:''
   const analystTag=s.source==='analyst'?`<span class="sc-analyst-tag" onclick="event.stopPropagation();openDetail(${s.id},${past?1:0})"><img src="${LOGO_SRC}" alt="TP" style="width:18px;height:18px;border-radius:4px;object-fit:cover;vertical-align:middle"> by ${ANALYST.name} ✔</span>`:`<span class="sc-social-txt">⚡ Pulse Engine v2</span>`
@@ -1314,11 +1323,24 @@ function openDetail(id,past){
 
 // PROOF + ECON + BROKERS
 let resultRange=0  // 0 = all time; otherwise days
+let proofPage=0     // current page (0-indexed) for the trade history table
+const PROOF_PAGE_SIZE=10
 function setResultRange(days,btn){
   resultRange=days
+  proofPage=0
   document.querySelectorAll('#result-filters .filter-chip').forEach(c=>c.classList.remove('active'))
   if(btn)btn.classList.add('active')
   renderProof()
+}
+function proofNextPage(){
+  proofPage++
+  renderProof()
+  document.getElementById('proof-tbody')?.scrollIntoView({behavior:'smooth',block:'nearest'})
+}
+function proofPrevPage(){
+  proofPage=Math.max(0,proofPage-1)
+  renderProof()
+  document.getElementById('proof-tbody')?.scrollIntoView({behavior:'smooth',block:'nearest'})
 }
 function renderProof(){
   // Build from real closed signals only — no fabricated history
@@ -1365,13 +1387,28 @@ function renderProof(){
   if(!closed.length){
     if(proofBar)proofBar.innerHTML=`<div style="color:var(--muted);padding:1rem">No closed signals in this period.</div>`
     if(proofBody)proofBody.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No results in this period. Try a wider range.</td></tr>`
+    const pagerEmpty=document.getElementById('proof-pager')
+    if(pagerEmpty)pagerEmpty.innerHTML=''
     return
   }
   if(proofBar)proofBar.innerHTML=closed.slice(0,40).map(s=>{const r=s.status==='win'?'w':s.status==='loss'?'l':'be';return `<div class="proof-cell ${r}">${r==='w'?'W':r==='l'?'L':'B'}</div>`}).join('')
-  if(proofBody)proofBody.innerHTML=closed.map(s=>{
+  // ── paginate the table: PROOF_PAGE_SIZE rows per page ──
+  const totalPages=Math.max(1,Math.ceil(closed.length/PROOF_PAGE_SIZE))
+  if(proofPage>totalPages-1)proofPage=totalPages-1
+  if(proofPage<0)proofPage=0
+  const pageItems=closed.slice(proofPage*PROOF_PAGE_SIZE,proofPage*PROOF_PAGE_SIZE+PROOF_PAGE_SIZE)
+  if(proofBody)proofBody.innerHTML=pageItems.map(s=>{
     const cell=isUnlocked()?'':'blur-cell'
     return `<tr><td class="mono" style="color:var(--muted)">${s.time||''}</td><td style="font-weight:600;color:var(--white)">${s.pair}</td><td>${s.source==='analyst'?'✍️':'🤖'}</td><td><span style="font-size:0.72rem;padding:2px 8px;border-radius:3px;background:${s.dir==='short'?'rgba(255,61,107,0.12)':'rgba(0,255,170,0.1)'};color:${s.dir==='short'?'var(--rose)':'var(--mint)'}">${(s.dir||'').toUpperCase()}</span></td><td class="mono ${cell}">${s.entry||''}</td><td class="mono ${cell}">${s.exit||'—'}</td><td><span class="pill ${s.status}">${s.status==='win'?'✓ Win':s.status==='loss'?'✗ Loss':'BE'}</span></td><td class="mono" style="color:${s.status==='win'?'var(--mint)':s.status==='loss'?'var(--rose)':'var(--gold)'};font-weight:600">${s.rr||''}</td></tr>`
   }).join('')
+  const pager=document.getElementById('proof-pager')
+  if(pager){
+    if(totalPages<=1){
+      pager.innerHTML=''
+    }else{
+      pager.innerHTML=`<button class="pg-btn" onclick="proofPrevPage()" ${proofPage===0?'disabled':''}>← Prev</button><span class="pg-info">Page ${proofPage+1} of ${totalPages} · ${closed.length} trades</span><button class="pg-btn" onclick="proofNextPage()" ${proofPage>=totalPages-1?'disabled':''}>Next →</button>`
+    }
+  }
 }
 let brokerFilter='all',pickedStars={}
 function renderBrokers(){
@@ -1516,25 +1553,31 @@ async function loadSignals(){
 // Gain per closed trade, as % return assuming 1% risk and 30/50/20 scale-out.
 // Full win (TP3) +2.80% · BE after TP2 +1.60% · BE after TP1 +0.10% · Loss -1.00%
 function tradeGain(s){
-  if(s.status==='loss') return -1.00
+  // No-stop-move model (SL never moves): 50/30/20 partial closes.
+  // Full win (TP3) +2.05% | Win after TP2-then-SL +1.05% | Breakeven after TP1-then-SL: 0.00% | Full loss -1.00%
+  if(s.status==='be') return 0.00 // TP1 banked (50%), rest hit original SL — exact scratch, no loss
+  if(s.status==='loss'){
+    if(s.close_kind==='sl-after-tp1') return -0.80 // legacy: brief hybrid-model trades
+    return -1.00
+  }
   if(s.status!=='win') return 0 // live/tp1/tp2 = not yet realized
-  // win: use close_kind to know how far it ran
-  if(s.close_kind==='tp3') return 2.80
-  if(s.close_kind==='be-tp2') return 1.60
-  if(s.close_kind==='be-tp1') return 0.10
-  // older wins without close_kind: assume full target reached (conservative legacy default)
-  return 2.80
+  if(s.close_kind==='tp3') return 2.05
+  if(s.close_kind==='sl-after-tp2') return 1.05
+  if(s.close_kind==='be-tp2') return 1.60 // legacy (old full-BE model trades)
+  if(s.close_kind==='be-tp1') return 0.10 // legacy
+  return 2.05 // older wins without close_kind: conservative legacy default
 }
 async function loadStats(){
   try{
     const {data,error}=await sb.from('public_signals').select('status,rr,grade,created_at,close_kind').limit(2000)
     if(error||!data||!data.length)return
     const wins=data.filter(s=>s.status==='win').length
+    const scratches=data.filter(s=>s.status==='be').length
     const losses=data.filter(s=>s.status==='loss').length
     const active=data.filter(s=>s.status==='live'||s.status==='tp1'||s.status==='tp2').length
-    const closed=wins+losses
+    const closed=wins+scratches+losses
     const total=data.length
-    const winRate=closed>0?((wins/closed)*100).toFixed(1):'—'
+    const winRate=closed>0?(((wins+scratches)/closed)*100).toFixed(1):'—'
     // ── cumulative % gains by time window (closed trades only) ──
     const now=new Date()
     const startToday=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime()
